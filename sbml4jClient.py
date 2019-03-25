@@ -70,6 +70,6 @@ else:
                     end = time.time()
                     print("File " + f + " took " + str(end - start))
 
-        print (numEntitiesDict)
-        end_all = time.time()
-        print("Persisting of all files took " + str(end_all - start_all) + " seconds")
+    print (numEntitiesDict)
+    end_all = time.time()
+    print("Persisting of all files took " + str(end_all - start_all) + " seconds")
