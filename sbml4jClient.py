@@ -30,48 +30,45 @@ else:
     get_response = requests.get(url_base + "/allEntities")
     #print(get_response.text)
     print("There are " + str(len(json.loads(get_response.text))) + " entities in the database")
-    if (not input("Continue ? (y/n): ").lower().strip()[:1] == "y"):
-        sys.exit(1)
+    delete_response = requests.delete(url_base + "/allEntities")
+    print(delete_response.text)
+
+    numEntitiesDict = {}
+    start_all = time.time()
+    listFileList = []
+    if (type == "both"):
+        listFileList.append("metabolic")
+        listFileList.append("non-metabolic")
     else:
-        delete_response = requests.delete(url_base + "/allEntities")
-        print(delete_response.text)
+        listFileList.append(type)
 
-        numEntitiesDict = {}
-        start_all = time.time()
-        listFileList = []
-        if (type == "both"):
-            listFileList.append("metabolic")
-            listFileList.append("non-metabolic")
-        else:
-            listFileList.append(type)
+    for typeOfPathway in listFileList:
+        filePath = path + "/" + typeOfPathway + "/" + organism
+        print(filePath)
+        filelist = os.listdir(filePath)
 
-        for typeOfPathway in listFileList:
-            filePath = path + "/" + typeOfPathway + "/" + organism
-            print(filePath)
-            filelist = os.listdir(filePath)
-
-            for f in filelist:
-                if(f.endswith(".xml")):
-                    if(option == "list"):
-                        print(f)
-                    elif(option == "persist"):
-                        start = time.time()
-                        fullFilePath = filePath+"/"+f
-                        print(fullFilePath)
-                        # read contents of files
-                        file = open(fullFilePath, "rb")
-                        post_response = requests.post(upload_url, files = {'file' : (f, file, 'application/xml')})
-                        if(post_response.status_code == requests.codes.ok):
-                            persisted_entities = post_response.text
-                            json_persisted = json.loads(persisted_entities)
-                            numPersisted = len(json_persisted)
-                            numEntitiesDict[f] = numPersisted
-                        else :
-                            print(f + " failed to presist")
-                            print(post_response.status_code)
-                            print(post_response.text)
-                        end = time.time()
-                        print("File " + f + " took " + str(end - start))
+        for f in filelist:
+            if(f.endswith(".xml")):
+                if(option == "list"):
+                    print(f)
+                elif(option == "persist"):
+                    start = time.time()
+                    fullFilePath = filePath+"/"+f
+                    print(fullFilePath)
+                    # read contents of files
+                    file = open(fullFilePath, "rb")
+                    post_response = requests.post(upload_url, files = {'file' : (f, file, 'application/xml')})
+                    if(post_response.status_code == requests.codes.ok):
+                        persisted_entities = post_response.text
+                        json_persisted = json.loads(persisted_entities)
+                        numPersisted = len(json_persisted)
+                        numEntitiesDict[f] = numPersisted
+                    else :
+                        print(f + " failed to presist")
+                        print(post_response.status_code)
+                        print(post_response.text)
+                    end = time.time()
+                    print("File " + f + " took " + str(end - start))
 
         print (numEntitiesDict)
         end_all = time.time()
