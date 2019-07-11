@@ -27,6 +27,7 @@ else:
     cleardb = sys.argv[6]
 
 
+
     print('Processing directory' + path)
     print('using base url: ' + url_base)
     #respond = requests.get('http://localhost:8080/sbml4j/allEntities')
@@ -38,10 +39,10 @@ else:
     if(cleardb == "clear"):
         do_deleteAll(url_base)
 
+    # 1. Persisting Pathways
 
     headersDict = {'user': 'Thor', 'Accept':'application/json'}
     paramDict = {'organism': 'hsa', 'matchingAttribute': 'sBaseId', 'source': 'KEGG', 'version': '2018-latest'}
-
 
     numEntitiesDict = {}
     start_all = time.time()
@@ -78,8 +79,43 @@ else:
                         print(post_response.status_code)
                         print(post_response.text)
                     end = time.time()
-                    print("File " + f + " took " + str(end - start))
+                    print("Persisting file " + f + " took " + str(end - start))
 
     print (numEntitiesDict)
     end_all = time.time()
     print("Persisting of all files took " + str(end_all - start_all) + " seconds")
+
+    if (option == "persist"):
+        # 2. building pathwayCollection
+        # get all pathway UUIDs
+        uuidList = list()
+        pathwayUUIDs = requests.get(url_base + "/pathwayUUIDs")
+        for pathwayUUID in json.loads(pathwayUUIDs.text):
+            uuidList.append(pathwayUUID)
+
+        #get databaseUUID
+        databaseParamDict = {'source': 'KEGG', 'version': '2018-latest', 'organism': 'hsa', 'matchingAttribute': 'sBaseId'}
+        databaseUUID = requests.get(url_base + "/databaseUUID", params=databaseParamDict)
+        print ("Using database with entityUUID: " + databaseUUID.text)
+
+        pathwayCollectionDict = {'name': 'TestPC', 'pathwayNodeIdString': 'TestPCIdString', 'sourcePathwayEntityUUIDs': uuidList, 'databaseEntityUUID': databaseUUID.text}
+        #print(pathwayCollectionDict)
+
+        pathwayCollectionCreated = requests.post(url_base + "/pathwayCollection", headers=headersDict, json=pathwayCollectionDict)
+        print(pathwayCollectionCreated.text)
+
+        # 3. create all pathway mappings
+        # get all pathway UUIDs
+        responseList = list()
+        # refresh the pathwayList to include the collection pathway
+        pathwayUUIDs = requests.get(url_base + "/pathwayUUIDs")
+        for pathwayUUID in json.loads(pathwayUUIDs.text):
+            start = time.time()
+            mappingParams = {'pathwayEntityUUID': pathwayUUID, 'mappingType': 'PATHWAYMAPPING', 'externalResource': 'KEGGGENES'}
+            response = requests.post(url_base + "/mapping", headers = headersDict, params=mappingParams)
+            responseList.append(response.text)
+            end = time.time()
+            print("Creating mapping for " + pathwayUUID + " took " + str(end - start) + " seconds")
+
+        for resp in responseList:
+            print(resp)
